@@ -27,6 +27,9 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long>, JpaSpec
 
     long countByFeaturedTrue();
 
+    @Query("select v.slug from Vehicle v where v.status in :statuses order by v.createdAt desc")
+    List<String> findSlugsByStatusIn(@Param("statuses") List<VehicleStatus> statuses);
+
     @EntityGraph(attributePaths = {"brand", "category"})
     List<Vehicle> findByStatusInAndFeaturedTrueOrderByCreatedAtDesc(List<VehicleStatus> statuses,
                                                                      org.springframework.data.domain.Pageable pageable);
