@@ -1,0 +1,11 @@
+spring:
+  jpa:
+    show-sql: false
+
+app:
+  seed:
+    enabled: false
+
+logging:
+  level:
+    com.concessionaria: INFO

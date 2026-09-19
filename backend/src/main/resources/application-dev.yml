@@ -1,0 +1,15 @@
+spring:
+  jpa:
+    show-sql: true
+
+app:
+  admin:
+    name: ${APP_ADMIN_NAME:Administrador}
+    email: ${APP_ADMIN_EMAIL:admin@concessionaria.dev}
+    password: ${APP_ADMIN_PASSWORD:}
+  seed:
+    enabled: true
+
+logging:
+  level:
+    com.concessionaria: DEBUG

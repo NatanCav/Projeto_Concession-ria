@@ -1,0 +1,69 @@
+name: concessionaria
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: concessionaria-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-concessionaria}
+      POSTGRES_USER: ${POSTGRES_USER:-concessionaria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-concessionaria} -d ${POSTGRES_DB:-concessionaria}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Os serviços abaixo empacotam a aplicação inteira em containers.
+  # Não são necessários no dia a dia de desenvolvimento (roda-se backend
+  # via Maven e frontend via `npm run dev` apontando para o postgres acima).
+  # Para subir tudo containerizado: `docker compose --profile full up --build`
+  backend:
+    profiles: ["full"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: concessionaria-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-concessionaria}
+      DATABASE_USERNAME: ${POSTGRES_USER:-concessionaria}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-28800000}
+      APP_ADMIN_NAME: ${APP_ADMIN_NAME:-Administrador}
+      APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-admin@concessionaria.dev}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      FILE_STORAGE_LOCATION: /app/uploads
+    volumes:
+      - backend-uploads:/app/uploads
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+
+  frontend:
+    profiles: ["full"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api}
+    container_name: concessionaria-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  postgres-data:
+  backend-uploads:
