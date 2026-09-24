@@ -2,11 +2,12 @@ import { Car, CheckCircle2, Clock, MessageCircle, Star, XCircle } from "lucide-r
 import { Link } from "react-router-dom";
 import { useDashboardSummary } from "@/hooks/useDashboard";
 import { StatCard } from "@/components/admin/StatCard";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 export function AdminDashboard() {
   useDocumentMeta({ title: "Dashboard — Painel administrativo" });
-  const { data, isLoading, isError } = useDashboardSummary();
+  const { data, isLoading, isError, refetch } = useDashboardSummary();
 
   return (
     <div>
@@ -21,7 +22,7 @@ export function AdminDashboard() {
       </div>
 
       {isError ? (
-        <p className="text-sm text-red-600">Não foi possível carregar os indicadores.</p>
+        <ErrorState title="Não foi possível carregar os indicadores" onRetry={refetch} />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard icon={Car} label="Total de veículos" value={data?.totalVehicles} isLoading={isLoading} />

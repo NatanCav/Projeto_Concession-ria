@@ -8,6 +8,7 @@ import { useUpdateSettings } from "@/hooks/useUpdateSettings";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/services/apiClient";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
@@ -66,7 +67,12 @@ export function AdminSettings() {
   };
 
   if (isLoading) {
-    return <p className="text-sm text-ink-500">Carregando configurações...</p>;
+    return (
+      <div className="mx-auto max-w-3xl">
+        <Skeleton className="mb-6 h-8 w-72" />
+        <Skeleton className="h-96 w-full rounded-xl" />
+      </div>
+    );
   }
 
   return (

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/services/apiClient";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import type { User } from "@/types/user";
@@ -119,6 +120,14 @@ export function AdminUsers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
+              {isLoading &&
+                Array.from({ length: 4 }).map((_, index) => (
+                  <tr key={index}>
+                    <td className="px-4 py-3" colSpan={5}>
+                      <Skeleton className="h-6 w-full" />
+                    </td>
+                  </tr>
+                ))}
               {users?.map((user) => (
                 <tr key={user.id}>
                   <td className="px-4 py-3 font-medium text-ink-900">{user.name}</td>

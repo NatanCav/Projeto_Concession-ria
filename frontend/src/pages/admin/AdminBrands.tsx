@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/services/apiClient";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import type { Brand } from "@/types/brand";
@@ -102,6 +103,14 @@ export function AdminBrands() {
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
+              {isLoading &&
+                Array.from({ length: 4 }).map((_, index) => (
+                  <tr key={index}>
+                    <td className="px-4 py-3" colSpan={3}>
+                      <Skeleton className="h-6 w-full" />
+                    </td>
+                  </tr>
+                ))}
               {brands?.map((brand) => (
                 <tr key={brand.id}>
                   <td className="px-4 py-3 font-medium text-ink-900">{brand.name}</td>

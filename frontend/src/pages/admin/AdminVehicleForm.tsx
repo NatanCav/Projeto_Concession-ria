@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { extractErrorMessage } from "@/services/apiClient";
 import { fuelLabels, statusLabels, transmissionLabels, vehicleTypeLabels } from "@/utils/labels";
@@ -157,7 +158,15 @@ export function AdminVehicleForm() {
   };
 
   if (isEditing && isLoadingVehicle) {
-    return <p className="text-sm text-ink-500">Carregando veículo...</p>;
+    return (
+      <div className="mx-auto max-w-4xl">
+        <Skeleton className="mb-6 h-8 w-56" />
+        <div className="flex flex-col gap-8">
+          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -257,10 +266,17 @@ export function AdminVehicleForm() {
           </div>
         </section>
 
-        {isEditing && vehicle && (
+        {isEditing && vehicle ? (
           <section className="rounded-xl border border-ink-100 bg-white p-6">
             <h2 className="mb-4 text-base font-bold text-ink-900">Fotos</h2>
             <ImageUploader vehicleId={vehicle.id} images={vehicle.images} />
+          </section>
+        ) : (
+          <section className="rounded-xl border border-dashed border-ink-200 bg-ink-50/60 p-6 text-center">
+            <h2 className="text-base font-bold text-ink-900">Fotos</h2>
+            <p className="mt-1 text-sm text-ink-500">
+              Salve o cadastro para liberar o envio de fotos deste veículo.
+            </p>
           </section>
         )}
 
