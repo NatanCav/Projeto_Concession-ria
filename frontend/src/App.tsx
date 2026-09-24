@@ -1,57 +1,76 @@
+import { lazy, Suspense, type ReactElement } from "react";
 import { Route, Routes } from "react-router-dom";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
 import { Home } from "@/pages/Home";
-import { Catalog } from "@/pages/Catalog";
-import { VehicleDetailPage } from "@/pages/VehicleDetailPage";
-import { NotFound } from "@/pages/NotFound";
-import { AdminLogin } from "@/pages/admin/AdminLogin";
-import { AdminDashboard } from "@/pages/admin/AdminDashboard";
-import { AdminVehicleList } from "@/pages/admin/AdminVehicleList";
-import { AdminVehicleForm } from "@/pages/admin/AdminVehicleForm";
-import { AdminBrands } from "@/pages/admin/AdminBrands";
-import { AdminCategories } from "@/pages/admin/AdminCategories";
-import { AdminUsers } from "@/pages/admin/AdminUsers";
-import { AdminSettings } from "@/pages/admin/AdminSettings";
+
+const Catalog = lazy(() => import("@/pages/Catalog").then((m) => ({ default: m.Catalog })));
+const VehicleDetailPage = lazy(() =>
+  import("@/pages/VehicleDetailPage").then((m) => ({ default: m.VehicleDetailPage })),
+);
+const NotFound = lazy(() => import("@/pages/NotFound").then((m) => ({ default: m.NotFound })));
+
+const AdminLayout = lazy(() => import("@/components/admin/AdminLayout").then((m) => ({ default: m.AdminLayout })));
+const AdminLogin = lazy(() => import("@/pages/admin/AdminLogin").then((m) => ({ default: m.AdminLogin })));
+const AdminDashboard = lazy(() =>
+  import("@/pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })),
+);
+const AdminVehicleList = lazy(() =>
+  import("@/pages/admin/AdminVehicleList").then((m) => ({ default: m.AdminVehicleList })),
+);
+const AdminVehicleForm = lazy(() =>
+  import("@/pages/admin/AdminVehicleForm").then((m) => ({ default: m.AdminVehicleForm })),
+);
+const AdminBrands = lazy(() => import("@/pages/admin/AdminBrands").then((m) => ({ default: m.AdminBrands })));
+const AdminCategories = lazy(() =>
+  import("@/pages/admin/AdminCategories").then((m) => ({ default: m.AdminCategories })),
+);
+const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers").then((m) => ({ default: m.AdminUsers })));
+const AdminSettings = lazy(() =>
+  import("@/pages/admin/AdminSettings").then((m) => ({ default: m.AdminSettings })),
+);
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center">
+      <span className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+    </div>
+  );
+}
+
+function withSuspense(element: ReactElement) {
+  return <Suspense fallback={<PageLoader />}>{element}</Suspense>;
+}
 
 export default function App() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/veiculos" element={<Catalog />} />
-        <Route path="/veiculos/:slug" element={<VehicleDetailPage />} />
+        <Route path="/veiculos" element={withSuspense(<Catalog />)} />
+        <Route path="/veiculos/:slug" element={withSuspense(<VehicleDetailPage />)} />
       </Route>
 
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/login" element={withSuspense(<AdminLogin />)} />
 
       <Route
         path="/admin"
-        element={
-          <ProtectedRoute>
-            <AdminLayout />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute>{withSuspense(<AdminLayout />)}</ProtectedRoute>}
       >
-        <Route index element={<AdminDashboard />} />
-        <Route path="veiculos" element={<AdminVehicleList />} />
-        <Route path="veiculos/novo" element={<AdminVehicleForm />} />
-        <Route path="veiculos/:id/editar" element={<AdminVehicleForm />} />
-        <Route path="marcas" element={<AdminBrands />} />
-        <Route path="categorias" element={<AdminCategories />} />
+        <Route index element={withSuspense(<AdminDashboard />)} />
+        <Route path="veiculos" element={withSuspense(<AdminVehicleList />)} />
+        <Route path="veiculos/novo" element={withSuspense(<AdminVehicleForm />)} />
+        <Route path="veiculos/:id/editar" element={withSuspense(<AdminVehicleForm />)} />
+        <Route path="marcas" element={withSuspense(<AdminBrands />)} />
+        <Route path="categorias" element={withSuspense(<AdminCategories />)} />
         <Route
           path="usuarios"
-          element={
-            <ProtectedRoute roles={["ADMIN"]}>
-              <AdminUsers />
-            </ProtectedRoute>
-          }
+          element={<ProtectedRoute roles={["ADMIN"]}>{withSuspense(<AdminUsers />)}</ProtectedRoute>}
         />
-        <Route path="configuracoes" element={<AdminSettings />} />
+        <Route path="configuracoes" element={withSuspense(<AdminSettings />)} />
       </Route>
 
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={withSuspense(<NotFound />)} />
     </Routes>
   );
 }
