@@ -72,6 +72,8 @@ export function VehicleGallery({ images, vehicleName }: VehicleGalleryProps) {
               key={image.id}
               type="button"
               onClick={() => setActiveIndex(index)}
+              aria-label={`Ver foto ${index + 1}`}
+              aria-current={index === activeIndex}
               className={cn(
                 "h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2",
                 index === activeIndex ? "border-brand-500" : "border-transparent",
@@ -89,6 +91,11 @@ export function VehicleGallery({ images, vehicleName }: VehicleGalleryProps) {
           <Dialog.Content
             className="fixed inset-0 z-50 flex items-center justify-center p-4 focus:outline-none"
             aria-describedby={undefined}
+            onKeyDown={(event) => {
+              if (images.length <= 1) return;
+              if (event.key === "ArrowLeft") goTo(activeIndex - 1);
+              if (event.key === "ArrowRight") goTo(activeIndex + 1);
+            }}
           >
             <Dialog.Title className="sr-only">{`Foto ampliada de ${vehicleName}`}</Dialog.Title>
             <Dialog.Close asChild>

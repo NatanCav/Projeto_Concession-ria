@@ -29,8 +29,21 @@ export function VehicleDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <Skeleton className="aspect-[4/3] w-full" />
+      <div className="container-page-narrow py-8">
+        <Skeleton className="mb-4 h-4 w-48" />
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
+          <div className="lg:col-span-3">
+            <Skeleton className="aspect-[4/3] w-full" />
+          </div>
+          <div className="flex flex-col gap-3 lg:col-span-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="mt-2 h-9 w-40" />
+            <Skeleton className="mt-4 h-28 w-full" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -55,7 +68,7 @@ export function VehicleDetailPage() {
   const displayPrice = vehicle.promotionalPrice ?? vehicle.price;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="container-page-narrow py-8 pb-28 sm:pb-8">
       <nav className="mb-4 text-sm text-ink-500">
         <Link to="/veiculos" className="hover:text-brand-500">
           Catálogo
@@ -104,7 +117,7 @@ export function VehicleDetailPage() {
           </dl>
 
           {settings?.whatsapp && (
-            <div className="mt-6">
+            <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-100 bg-white p-4 shadow-popover sm:static sm:z-auto sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
               <WhatsAppInterestButton vehicle={vehicle} whatsapp={settings.whatsapp} />
             </div>
           )}
