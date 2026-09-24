@@ -21,6 +21,7 @@ const AdminVehicleList = lazy(() =>
 const AdminVehicleForm = lazy(() =>
   import("@/pages/admin/AdminVehicleForm").then((m) => ({ default: m.AdminVehicleForm })),
 );
+const AdminLeads = lazy(() => import("@/pages/admin/AdminLeads").then((m) => ({ default: m.AdminLeads })));
 const AdminBrands = lazy(() => import("@/pages/admin/AdminBrands").then((m) => ({ default: m.AdminBrands })));
 const AdminCategories = lazy(() =>
   import("@/pages/admin/AdminCategories").then((m) => ({ default: m.AdminCategories })),
@@ -61,6 +62,7 @@ export default function App() {
         <Route path="veiculos" element={withSuspense(<AdminVehicleList />)} />
         <Route path="veiculos/novo" element={withSuspense(<AdminVehicleForm />)} />
         <Route path="veiculos/:id/editar" element={withSuspense(<AdminVehicleForm />)} />
+        <Route path="leads" element={withSuspense(<AdminLeads />)} />
         <Route
           path="marcas"
           element={<ProtectedRoute roles={["ADMIN"]}>{withSuspense(<AdminBrands />)}</ProtectedRoute>}

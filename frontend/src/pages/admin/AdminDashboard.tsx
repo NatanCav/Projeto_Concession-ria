@@ -81,6 +81,7 @@ export function AdminDashboard() {
                 value={data?.totalLeads}
                 isLoading={isLoading}
                 hint="Total acumulado"
+                to="/admin/leads"
               />
             </div>
           </div>
@@ -201,15 +202,17 @@ function SecondaryStat({
   value,
   isLoading,
   hint,
+  to,
 }: {
   icon: typeof Star;
   label: string;
   value: number | undefined;
   isLoading?: boolean;
   hint: string;
+  to?: string;
 }) {
-  return (
-    <div className="flex flex-col justify-between rounded-2xl border border-ink-100 bg-white p-5">
+  const content = (
+    <>
       <div className="flex items-center gap-2 text-ink-500">
         <Icon className="h-4 w-4" />
         <p className="text-xs font-semibold uppercase tracking-wide">{label}</p>
@@ -220,6 +223,19 @@ function SecondaryStat({
         <p className="mt-1 text-3xl font-extrabold text-ink-900">{value ?? 0}</p>
       )}
       <p className="mt-1 text-xs text-ink-400">{hint}</p>
-    </div>
+    </>
   );
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className="flex flex-col justify-between rounded-2xl border border-ink-100 bg-white p-5 transition-colors hover:border-brand-200 hover:bg-brand-50/40"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className="flex flex-col justify-between rounded-2xl border border-ink-100 bg-white p-5">{content}</div>;
 }

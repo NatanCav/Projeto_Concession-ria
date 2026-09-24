@@ -6,6 +6,7 @@ import {
   ListTree,
   LogOut,
   Menu,
+  MessageCircle,
   Settings,
   Tags,
   Users,
@@ -38,6 +39,10 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
+    label: "Atendimento",
+    items: [{ to: "/admin/leads", label: "Interesses", icon: MessageCircle }],
+  },
+  {
     label: "Sistema",
     items: [
       { to: "/admin/usuarios", label: "Usuários", icon: Users, adminOnly: true },
@@ -51,6 +56,7 @@ const pageTitles: { test: (path: string) => boolean; title: string }[] = [
   { test: (p) => p === "/admin/veiculos", title: "Veículos" },
   { test: (p) => p === "/admin/veiculos/novo", title: "Novo veículo" },
   { test: (p) => /^\/admin\/veiculos\/\d+\/editar$/.test(p), title: "Editar veículo" },
+  { test: (p) => p === "/admin/leads", title: "Interesses" },
   { test: (p) => p === "/admin/marcas", title: "Marcas" },
   { test: (p) => p === "/admin/categorias", title: "Categorias" },
   { test: (p) => p === "/admin/usuarios", title: "Usuários" },
