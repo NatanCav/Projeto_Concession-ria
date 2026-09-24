@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/services/apiClient";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import type { User } from "@/types/user";
 
 const userSchema = z.object({
@@ -56,7 +57,7 @@ export function AdminUsers() {
     setIsFormOpen(true);
   };
 
-  const onSubmit = async (values: UserFormSchema) => {
+  const onSubmit = useSubmitGuard(async (values: UserFormSchema) => {
     try {
       if (editing) {
         await update.mutateAsync({ id: editing.id, values: { ...values, password: values.password || undefined } });
@@ -73,7 +74,7 @@ export function AdminUsers() {
     } catch (error) {
       toast.error(extractErrorMessage(error, "Não foi possível salvar o usuário."));
     }
-  };
+  });
 
   const handleToggleActive = async (user: User) => {
     try {

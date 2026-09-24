@@ -16,6 +16,7 @@ import { ImageUploader } from "@/components/admin/ImageUploader";
 import { extractErrorMessage } from "@/services/apiClient";
 import { fuelLabels, statusLabels, transmissionLabels, vehicleTypeLabels } from "@/utils/labels";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 
 const optionalNumber = z.preprocess(
   (val) => (val === "" || val === undefined || val === null ? undefined : val),
@@ -141,7 +142,7 @@ export function AdminVehicleForm() {
     }
   }, [vehicle, reset]);
 
-  const onSubmit = async (values: VehicleFormSchema) => {
+  const onSubmit = useSubmitGuard(async (values: VehicleFormSchema) => {
     try {
       if (isEditing) {
         await updateVehicle.mutateAsync(values);
@@ -155,7 +156,7 @@ export function AdminVehicleForm() {
     } catch (error) {
       toast.error(extractErrorMessage(error, "Não foi possível salvar o veículo."));
     }
-  };
+  });
 
   if (isEditing && isLoadingVehicle) {
     return (

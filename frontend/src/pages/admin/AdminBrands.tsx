@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/services/apiClient";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import type { Brand } from "@/types/brand";
 
 const brandSchema = z.object({
@@ -53,7 +54,7 @@ export function AdminBrands() {
     setIsFormOpen(true);
   };
 
-  const onSubmit = async (values: BrandFormSchema) => {
+  const onSubmit = useSubmitGuard(async (values: BrandFormSchema) => {
     try {
       if (editing) {
         await update.mutateAsync({ id: editing.id, values });
@@ -66,7 +67,7 @@ export function AdminBrands() {
     } catch (error) {
       toast.error(extractErrorMessage(error, "Não foi possível salvar a marca."));
     }
-  };
+  });
 
   const handleDelete = async () => {
     if (!toDelete) return;

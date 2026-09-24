@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { extractErrorMessage } from "@/services/apiClient";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import type { Category } from "@/types/category";
 
 const categorySchema = z.object({
@@ -52,7 +53,7 @@ export function AdminCategories() {
     setIsFormOpen(true);
   };
 
-  const onSubmit = async (values: CategoryFormSchema) => {
+  const onSubmit = useSubmitGuard(async (values: CategoryFormSchema) => {
     try {
       if (editing) {
         await update.mutateAsync({ id: editing.id, values });
@@ -65,7 +66,7 @@ export function AdminCategories() {
     } catch (error) {
       toast.error(extractErrorMessage(error, "Não foi possível salvar a categoria."));
     }
-  };
+  });
 
   const handleDelete = async () => {
     if (!toDelete) return;
