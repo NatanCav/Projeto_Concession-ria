@@ -7,7 +7,7 @@ export function Footer() {
 
   return (
     <footer className="border-t border-ink-100 bg-ink-950 text-ink-200">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
+      <div className="container-page grid grid-cols-1 gap-10 py-14 md:grid-cols-3">
         <div>
           <h3 className="text-lg font-bold text-white">{settings?.dealershipName ?? "Concessionária"}</h3>
           <p className="mt-2 text-sm text-ink-400">

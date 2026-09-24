@@ -39,6 +39,16 @@ export default {
         card: "0 1px 2px 0 rgb(0 0 0 / 0.06), 0 1px 3px 0 rgb(0 0 0 / 0.08)",
         popover: "0 10px 40px -10px rgb(0 0 0 / 0.25)",
       },
+      keyframes: {
+        "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
+        "slide-in-left": { from: { transform: "translateX(-100%)" }, to: { transform: "translateX(0)" } },
+        "slide-in-right": { from: { transform: "translateX(100%)" }, to: { transform: "translateX(0)" } },
+      },
+      animation: {
+        "fade-in": "fade-in 150ms ease-out",
+        "slide-in-left": "slide-in-left 200ms ease-out",
+        "slide-in-right": "slide-in-right 200ms ease-out",
+      },
     },
   },
   plugins: [],

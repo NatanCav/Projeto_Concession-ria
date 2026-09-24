@@ -15,7 +15,7 @@ export function Modal({ open, onOpenChange, title, description, children, classN
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink-950/50 data-[state=open]:animate-in data-[state=open]:fade-in" />
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink-950/50 data-[state=open]:animate-fade-in" />
         <Dialog.Content
           className={
             className ??
