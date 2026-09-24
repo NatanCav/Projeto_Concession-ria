@@ -61,13 +61,22 @@ export default function App() {
         <Route path="veiculos" element={withSuspense(<AdminVehicleList />)} />
         <Route path="veiculos/novo" element={withSuspense(<AdminVehicleForm />)} />
         <Route path="veiculos/:id/editar" element={withSuspense(<AdminVehicleForm />)} />
-        <Route path="marcas" element={withSuspense(<AdminBrands />)} />
-        <Route path="categorias" element={withSuspense(<AdminCategories />)} />
+        <Route
+          path="marcas"
+          element={<ProtectedRoute roles={["ADMIN"]}>{withSuspense(<AdminBrands />)}</ProtectedRoute>}
+        />
+        <Route
+          path="categorias"
+          element={<ProtectedRoute roles={["ADMIN"]}>{withSuspense(<AdminCategories />)}</ProtectedRoute>}
+        />
         <Route
           path="usuarios"
           element={<ProtectedRoute roles={["ADMIN"]}>{withSuspense(<AdminUsers />)}</ProtectedRoute>}
         />
-        <Route path="configuracoes" element={withSuspense(<AdminSettings />)} />
+        <Route
+          path="configuracoes"
+          element={<ProtectedRoute roles={["ADMIN"]}>{withSuspense(<AdminSettings />)}</ProtectedRoute>}
+        />
       </Route>
 
       <Route path="*" element={withSuspense(<NotFound />)} />

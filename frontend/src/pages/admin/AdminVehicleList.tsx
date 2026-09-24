@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useAdminVehicles";
 import { useBrands } from "@/hooks/useBrands";
 import { useCategories } from "@/hooks/useCategories";
+import { useAuth } from "@/context/AuthContext";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
@@ -26,6 +27,9 @@ const STATUS_OPTIONS: VehicleStatus[] = ["DISPONIVEL", "RESERVADO", "VENDIDO", "
 
 export function AdminVehicleList() {
   useDocumentMeta({ title: "Veículos — Painel administrativo" });
+
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole("ADMIN");
 
   const [filters, setFilters] = useState<AdminVehicleFilters>({ page: 0, size: 10 });
   const [vehicleToDelete, setVehicleToDelete] = useState<VehicleSummary | null>(null);
@@ -174,14 +178,22 @@ export function AdminVehicleList() {
                   </select>
                 </td>
                 <td className="px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => handleFeaturedToggle(vehicle)}
-                    aria-label={vehicle.featured ? "Remover destaque" : "Marcar como destaque"}
-                    className={vehicle.featured ? "text-amber-500" : "text-ink-300 hover:text-amber-400"}
-                  >
-                    <Star className="h-5 w-5" fill={vehicle.featured ? "currentColor" : "none"} />
-                  </button>
+                  {isAdmin ? (
+                    <button
+                      type="button"
+                      onClick={() => handleFeaturedToggle(vehicle)}
+                      aria-label={vehicle.featured ? "Remover destaque" : "Marcar como destaque"}
+                      className={vehicle.featured ? "text-amber-500" : "text-ink-300 hover:text-amber-400"}
+                    >
+                      <Star className="h-5 w-5" fill={vehicle.featured ? "currentColor" : "none"} />
+                    </button>
+                  ) : (
+                    <Star
+                      className="h-5 w-5 text-ink-300"
+                      fill={vehicle.featured ? "currentColor" : "none"}
+                      aria-label={vehicle.featured ? "Em destaque" : "Sem destaque"}
+                    />
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
@@ -192,14 +204,16 @@ export function AdminVehicleList() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => setVehicleToDelete(vehicle)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:bg-red-50"
-                      aria-label="Excluir"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => setVehicleToDelete(vehicle)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:bg-red-50"
+                        aria-label="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

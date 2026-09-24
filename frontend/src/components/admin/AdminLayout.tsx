@@ -18,10 +18,10 @@ import { cn } from "@/utils/cn";
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/veiculos", label: "Veículos", icon: Car },
-  { to: "/admin/marcas", label: "Marcas", icon: Tags },
-  { to: "/admin/categorias", label: "Categorias", icon: ListTree },
+  { to: "/admin/marcas", label: "Marcas", icon: Tags, adminOnly: true },
+  { to: "/admin/categorias", label: "Categorias", icon: ListTree, adminOnly: true },
   { to: "/admin/usuarios", label: "Usuários", icon: Users, adminOnly: true },
-  { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/admin/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
 ];
 
 export function AdminLayout() {
