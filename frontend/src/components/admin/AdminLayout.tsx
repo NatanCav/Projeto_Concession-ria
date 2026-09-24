@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Car,
   LayoutDashboard,
@@ -11,22 +11,60 @@ import {
   Users,
   X,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Sheet } from "@/components/ui/Sheet";
 import { cn } from "@/utils/cn";
 
-const navItems = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/admin/veiculos", label: "Veículos", icon: Car },
-  { to: "/admin/marcas", label: "Marcas", icon: Tags, adminOnly: true },
-  { to: "/admin/categorias", label: "Categorias", icon: ListTree, adminOnly: true },
-  { to: "/admin/usuarios", label: "Usuários", icon: Users, adminOnly: true },
-  { to: "/admin/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
+interface NavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  end?: boolean;
+  adminOnly?: boolean;
+}
+
+const navGroups: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Principal",
+    items: [{ to: "/admin", label: "Visão geral", icon: LayoutDashboard, end: true }],
+  },
+  {
+    label: "Estoque",
+    items: [
+      { to: "/admin/veiculos", label: "Veículos", icon: Car },
+      { to: "/admin/marcas", label: "Marcas", icon: Tags, adminOnly: true },
+      { to: "/admin/categorias", label: "Categorias", icon: ListTree, adminOnly: true },
+    ],
+  },
+  {
+    label: "Sistema",
+    items: [
+      { to: "/admin/usuarios", label: "Usuários", icon: Users, adminOnly: true },
+      { to: "/admin/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
+    ],
+  },
 ];
+
+const pageTitles: { test: (path: string) => boolean; title: string }[] = [
+  { test: (p) => p === "/admin", title: "Visão geral" },
+  { test: (p) => p === "/admin/veiculos", title: "Veículos" },
+  { test: (p) => p === "/admin/veiculos/novo", title: "Novo veículo" },
+  { test: (p) => /^\/admin\/veiculos\/\d+\/editar$/.test(p), title: "Editar veículo" },
+  { test: (p) => p === "/admin/marcas", title: "Marcas" },
+  { test: (p) => p === "/admin/categorias", title: "Categorias" },
+  { test: (p) => p === "/admin/usuarios", title: "Usuários" },
+  { test: (p) => p === "/admin/configuracoes", title: "Configurações" },
+];
+
+function getPageTitle(pathname: string): string {
+  return pageTitles.find((entry) => entry.test(pathname))?.title ?? "Painel administrativo";
+}
 
 export function AdminLayout() {
   const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
@@ -34,7 +72,9 @@ export function AdminLayout() {
     navigate("/admin/login");
   };
 
-  const visibleItems = navItems.filter((item) => !item.adminOnly || hasRole("ADMIN"));
+  const visibleGroups = navGroups
+    .map((group) => ({ ...group, items: group.items.filter((item) => !item.adminOnly || hasRole("ADMIN")) }))
+    .filter((group) => group.items.length > 0);
 
   const sidebarContent = (
     <>
@@ -44,23 +84,32 @@ export function AdminLayout() {
         </span>
         <span className="text-lg font-bold">Painel Admin</span>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 px-3">
-        {visibleItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive ? "bg-brand-500 text-white" : "text-ink-300 hover:bg-ink-800 hover:text-white",
-              )
-            }
-          >
-            <item.icon className="h-5 w-5" />
-            {item.label}
-          </NavLink>
+      <nav className="flex flex-1 flex-col gap-5 px-3">
+        {visibleGroups.map((group) => (
+          <div key={group.label}>
+            <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-500">
+              {group.label}
+            </p>
+            <div className="flex flex-col gap-1">
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                      isActive ? "bg-brand-500 text-white" : "text-ink-300 hover:bg-ink-800 hover:text-white",
+                    )
+                  }
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
       <div className="border-t border-ink-800 px-5 py-4">
@@ -98,16 +147,24 @@ export function AdminLayout() {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between border-b border-ink-100 bg-white px-4 md:px-6">
-          <button
-            type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-700 hover:bg-ink-100 md:hidden"
-            onClick={() => setSidebarOpen((open) => !open)}
-            aria-label={sidebarOpen ? "Fechar menu" : "Abrir menu"}
+        <header className="flex h-16 items-center justify-between gap-4 border-b border-ink-100 bg-white px-4 md:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ink-700 hover:bg-ink-100 md:hidden"
+              onClick={() => setSidebarOpen((open) => !open)}
+              aria-label={sidebarOpen ? "Fechar menu" : "Abrir menu"}
+            >
+              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+            <p className="truncate text-sm font-semibold text-ink-900 md:text-base">
+              {getPageTitle(location.pathname)}
+            </p>
+          </div>
+          <Link
+            to="/"
+            className="shrink-0 text-sm font-medium text-ink-500 hover:text-brand-500"
           >
-            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-          <Link to="/" className="text-sm font-medium text-ink-500 hover:text-brand-500">
             Ver site público →
           </Link>
         </header>
