@@ -11,6 +11,8 @@ interface ImageUploaderProps {
   images: VehicleImage[];
 }
 
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
 export function ImageUploader({ vehicleId, images }: ImageUploaderProps) {
   const { upload, reorder, setPrimary, remove } = useVehicleImageMutations(vehicleId);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -20,8 +22,14 @@ export function ImageUploader({ vehicleId, images }: ImageUploaderProps) {
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);
+    const invalidFile = fileArray.find((file) => !ALLOWED_IMAGE_TYPES.includes(file.type));
+    if (invalidFile) {
+      toast.error(`"${invalidFile.name}" não é uma imagem JPG, PNG ou WEBP.`);
+      return;
+    }
     try {
-      await upload.mutateAsync(Array.from(files));
+      await upload.mutateAsync(fileArray);
       toast.success("Fotos enviadas com sucesso.");
     } catch (error) {
       toast.error(extractErrorMessage(error, "Não foi possível enviar as fotos."));
