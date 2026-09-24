@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { Sheet } from "@/components/ui/Sheet";
 import { cn } from "@/utils/cn";
 
 const navItems = [
@@ -78,27 +79,31 @@ export function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-ink-50">
+      <a
+        href="#admin-main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Pular para o conteúdo
+      </a>
       <aside className="hidden w-64 flex-col bg-ink-950 md:flex">{sidebarContent}</aside>
 
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-40 flex md:hidden">
-          <div className="flex w-64 flex-col bg-ink-950">{sidebarContent}</div>
-          <button
-            type="button"
-            className="flex-1 bg-black/50"
-            aria-label="Fechar menu"
-            onClick={() => setSidebarOpen(false)}
-          />
-        </div>
-      )}
+      <Sheet
+        open={sidebarOpen}
+        onOpenChange={setSidebarOpen}
+        title="Menu do painel"
+        hideHeader
+        className="bg-ink-950 md:hidden"
+      >
+        {sidebarContent}
+      </Sheet>
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-16 items-center justify-between border-b border-ink-100 bg-white px-4 md:px-6">
           <button
             type="button"
             className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-700 hover:bg-ink-100 md:hidden"
             onClick={() => setSidebarOpen((open) => !open)}
-            aria-label="Abrir menu"
+            aria-label={sidebarOpen ? "Fechar menu" : "Abrir menu"}
           >
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -106,7 +111,7 @@ export function AdminLayout() {
             Ver site público →
           </Link>
         </header>
-        <main className="flex-1 p-4 md:p-8">
+        <main id="admin-main-content" className="flex-1 p-4 md:p-8">
           <Outlet />
         </main>
       </div>

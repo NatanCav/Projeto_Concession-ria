@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { useVehicles } from "@/hooks/useVehicles";
 import { FilterSidebar } from "@/components/catalog/FilterSidebar";
 import { SearchBar } from "@/components/catalog/SearchBar";
@@ -10,6 +10,7 @@ import { CatalogGridSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Pagination } from "@/components/ui/Pagination";
+import { Sheet } from "@/components/ui/Sheet";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import type { SortOption, VehicleFilters } from "@/types/vehicle";
 
@@ -86,7 +87,7 @@ export function Catalog() {
   ].filter(Boolean).length;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="container-page py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-ink-900">Catálogo de veículos</h1>
         <p className="text-sm text-ink-500">
@@ -150,30 +151,17 @@ export function Catalog() {
         </div>
       </div>
 
-      {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-40 flex lg:hidden">
-          <div className="w-[85vw] max-w-sm overflow-y-auto bg-ink-50 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-bold text-ink-900">Filtros</h2>
-              <button
-                type="button"
-                onClick={() => setMobileFiltersOpen(false)}
-                aria-label="Fechar filtros"
-                className="rounded-md p-1 text-ink-500 hover:bg-ink-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <FilterSidebar filters={filters} onChange={updateParams} onClear={clearFilters} />
-          </div>
-          <button
-            type="button"
-            className="flex-1 bg-black/40"
-            aria-label="Fechar"
-            onClick={() => setMobileFiltersOpen(false)}
-          />
+      <Sheet
+        open={mobileFiltersOpen}
+        onOpenChange={setMobileFiltersOpen}
+        title="Filtros"
+        side="left"
+        className="bg-ink-50 lg:hidden"
+      >
+        <div className="p-4">
+          <FilterSidebar filters={filters} onChange={updateParams} onClear={clearFilters} />
         </div>
-      )}
+      </Sheet>
     </div>
   );
 }
