@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Car, Menu, Search, X } from "lucide-react";
+import { Car, Menu, MessageCircle, Search, X } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
+import { buildGenericWhatsappUrl } from "@/utils/whatsapp";
 import { cn } from "@/utils/cn";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -9,6 +10,30 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     "text-sm font-medium transition-colors hover:text-brand-500",
     isActive ? "text-brand-500" : "text-ink-600",
   );
+
+interface HeaderSearchFormProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: (event: React.FormEvent) => void;
+  className?: string;
+}
+
+function HeaderSearchForm({ value, onChange, onSubmit, className }: HeaderSearchFormProps) {
+  return (
+    <form onSubmit={onSubmit} className={className}>
+      <div className="relative w-full">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Marca, modelo ou versão"
+          aria-label="Buscar veículos"
+          className="h-10 w-full rounded-full border border-ink-200 bg-ink-50 pl-9 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+        />
+      </div>
+    </form>
+  );
+}
 
 export function Header() {
   const { data: settings } = useSettings();
@@ -24,7 +49,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink-100 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="container-page flex h-16 items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2 font-extrabold text-ink-900" onClick={() => setMenuOpen(false)}>
           {settings?.logoUrl ? (
             <img src={settings.logoUrl} alt={settings.dealershipName} className="h-9 w-9 rounded-lg object-cover" />
@@ -45,23 +70,30 @@ export function Header() {
           </NavLink>
         </nav>
 
-        <form onSubmit={handleSearch} className="hidden flex-1 max-w-sm items-center md:flex">
-          <div className="relative w-full">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-            <input
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Marca, modelo ou versão"
-              className="h-10 w-full rounded-full border border-ink-200 bg-ink-50 pl-9 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-            />
-          </div>
-        </form>
+        <HeaderSearchForm
+          value={searchTerm}
+          onChange={setSearchTerm}
+          onSubmit={handleSearch}
+          className="hidden max-w-sm flex-1 items-center md:flex"
+        />
+
+        {settings?.whatsapp && (
+          <a
+            href={buildGenericWhatsappUrl(settings.whatsapp)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden items-center gap-2 rounded-full bg-ink-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink-800 md:inline-flex"
+          >
+            <MessageCircle className="h-4 w-4" /> WhatsApp
+          </a>
+        )}
 
         <button
           type="button"
           className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-700 hover:bg-ink-100 md:hidden"
           onClick={() => setMenuOpen((open) => !open)}
-          aria-label="Abrir menu"
+          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={menuOpen}
         >
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -69,17 +101,7 @@ export function Header() {
 
       {menuOpen && (
         <div className="border-t border-ink-100 bg-white px-4 py-4 md:hidden">
-          <form onSubmit={handleSearch} className="mb-4">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-              <input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Marca, modelo ou versão"
-                className="h-10 w-full rounded-full border border-ink-200 bg-ink-50 pl-9 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              />
-            </div>
-          </form>
+          <HeaderSearchForm value={searchTerm} onChange={setSearchTerm} onSubmit={handleSearch} className="mb-4" />
           <nav className="flex flex-col gap-3">
             <NavLink to="/" end className={navLinkClass} onClick={() => setMenuOpen(false)}>
               Início
