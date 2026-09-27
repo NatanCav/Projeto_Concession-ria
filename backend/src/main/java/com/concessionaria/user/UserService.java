@@ -1,5 +1,8 @@
 package com.concessionaria.user;
 
+import com.concessionaria.brand.Brand;
+import com.concessionaria.brand.BrandRepository;
+import com.concessionaria.exception.BusinessRuleException;
 import com.concessionaria.exception.DuplicateResourceException;
 import com.concessionaria.exception.ResourceNotFoundException;
 import com.concessionaria.user.dto.UserCreateRequest;
@@ -17,10 +20,12 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final BrandRepository brandRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, BrandRepository brandRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.brandRepository = brandRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -41,6 +46,7 @@ public class UserService {
         user.setName(request.name());
         user.setEmail(request.email());
         user.setRole(request.role());
+        user.setBrand(resolveStore(request.role(), request.brandId()));
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setActive(true);
         return UserResponse.from(userRepository.save(user));
@@ -57,6 +63,7 @@ public class UserService {
         user.setName(request.name());
         user.setEmail(request.email());
         user.setRole(request.role());
+        user.setBrand(resolveStore(request.role(), request.brandId()));
         if (StringUtils.hasText(request.password())) {
             user.setPasswordHash(passwordEncoder.encode(request.password()));
         }
@@ -74,6 +81,17 @@ public class UserService {
     public void delete(Long id) {
         User user = getOrThrow(id);
         userRepository.delete(user);
+    }
+
+    private Brand resolveStore(UserRole role, Long brandId) {
+        if (role == UserRole.ADMIN) {
+            return null;
+        }
+        if (brandId == null) {
+            throw new BusinessRuleException("Selecione a loja (marca) que este vendedor vai representar.");
+        }
+        return brandRepository.findById(brandId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Marca", brandId));
     }
 
     private User getOrThrow(Long id) {

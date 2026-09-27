@@ -66,6 +66,9 @@ export interface VehicleDetail {
   mileage: number;
   price: number;
   promotionalPrice: number | null;
+  costPrice: number | null;
+  soldPrice: number | null;
+  soldAt: string | null;
   fuel: FuelType;
   transmission: TransmissionType;
   color: string | null;
@@ -116,6 +119,8 @@ export interface VehicleFormValues {
   mileage: number;
   price: number;
   promotionalPrice?: number | null;
+  costPrice?: number | null;
+  soldPrice?: number | null;
   fuel: FuelType;
   transmission: TransmissionType;
   color?: string;

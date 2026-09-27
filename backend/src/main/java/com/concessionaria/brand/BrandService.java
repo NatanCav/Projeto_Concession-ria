@@ -59,7 +59,7 @@ public class BrandService {
             brandRepository.delete(brand);
             brandRepository.flush();
         } catch (DataIntegrityViolationException e) {
-            throw new BusinessRuleException("Não é possível excluir uma marca com veículos vinculados.");
+            throw new BusinessRuleException("Não é possível excluir uma marca com veículos ou vendedores vinculados.");
         }
     }
 

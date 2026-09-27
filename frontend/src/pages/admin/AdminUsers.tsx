@@ -5,6 +5,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useUserMutations, useUsers } from "@/hooks/useAdminUsers";
+import { useBrands } from "@/hooks/useBrands";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -18,12 +19,18 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import type { User } from "@/types/user";
 
-const userSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório").max(150),
-  email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
-  role: z.enum(["ADMIN", "VENDEDOR"]),
-  password: z.string().optional(),
-});
+const userSchema = z
+  .object({
+    name: z.string().min(1, "Nome é obrigatório").max(150),
+    email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
+    role: z.enum(["ADMIN", "VENDEDOR"]),
+    brandId: z.coerce.number(),
+    password: z.string().optional(),
+  })
+  .refine((values) => values.role === "ADMIN" || values.brandId > 0, {
+    message: "Selecione a loja deste vendedor",
+    path: ["brandId"],
+  });
 
 type UserFormSchema = z.infer<typeof userSchema>;
 
@@ -32,6 +39,7 @@ export function AdminUsers() {
 
   const { user: currentUser } = useAuth();
   const { data: users, isLoading } = useUsers();
+  const { data: brands } = useBrands(true);
   const { create, update, changeStatus, remove } = useUserMutations();
 
   const [editing, setEditing] = useState<User | null>(null);
@@ -42,32 +50,41 @@ export function AdminUsers() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<UserFormSchema>({ resolver: zodResolver(userSchema), defaultValues: { name: "", email: "", role: "VENDEDOR", password: "" } });
+  } = useForm<UserFormSchema>({
+    resolver: zodResolver(userSchema),
+    defaultValues: { name: "", email: "", role: "VENDEDOR", brandId: 0, password: "" },
+  });
+  const selectedRole = watch("role");
 
   const openCreate = () => {
     setEditing(null);
-    reset({ name: "", email: "", role: "VENDEDOR", password: "" });
+    reset({ name: "", email: "", role: "VENDEDOR", brandId: 0, password: "" });
     setIsFormOpen(true);
   };
 
   const openEdit = (user: User) => {
     setEditing(user);
-    reset({ name: user.name, email: user.email, role: user.role, password: "" });
+    reset({ name: user.name, email: user.email, role: user.role, brandId: user.brandId ?? 0, password: "" });
     setIsFormOpen(true);
   };
 
   const onSubmit = useSubmitGuard(async (values: UserFormSchema) => {
+    const brandId = values.role === "VENDEDOR" ? values.brandId : null;
     try {
       if (editing) {
-        await update.mutateAsync({ id: editing.id, values: { ...values, password: values.password || undefined } });
+        await update.mutateAsync({
+          id: editing.id,
+          values: { ...values, brandId, password: values.password || undefined },
+        });
         toast.success("Usuário atualizado.");
       } else {
         if (!values.password) {
           toast.error("Senha é obrigatória para novos usuários.");
           return;
         }
-        await create.mutateAsync({ ...values, password: values.password });
+        await create.mutateAsync({ ...values, brandId, password: values.password });
         toast.success("Usuário cadastrado.");
       }
       setIsFormOpen(false);
@@ -104,18 +121,19 @@ export function AdminUsers() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-ink-100 bg-white">
+      <div className="overflow-x-auto rounded-xl border border-ink-100 bg-white">
         {!isLoading && users?.length === 0 ? (
           <div className="p-10">
             <EmptyState title="Nenhum usuário cadastrado" />
           </div>
         ) : (
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-ink-100 bg-ink-50 text-xs uppercase tracking-wide text-ink-500">
               <tr>
                 <th className="px-4 py-3">Nome</th>
                 <th className="px-4 py-3">E-mail</th>
                 <th className="px-4 py-3">Perfil</th>
+                <th className="px-4 py-3">Loja</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Ações</th>
               </tr>
@@ -124,7 +142,7 @@ export function AdminUsers() {
               {isLoading &&
                 Array.from({ length: 4 }).map((_, index) => (
                   <tr key={index}>
-                    <td className="px-4 py-3" colSpan={5}>
+                    <td className="px-4 py-3" colSpan={6}>
                       <Skeleton className="h-6 w-full" />
                     </td>
                   </tr>
@@ -134,6 +152,15 @@ export function AdminUsers() {
                   <td className="px-4 py-3 font-medium text-ink-900">{user.name}</td>
                   <td className="px-4 py-3 text-ink-600">{user.email}</td>
                   <td className="px-4 py-3">{user.role === "ADMIN" ? "Administrador" : "Vendedor"}</td>
+                  <td className="px-4 py-3 text-ink-600">
+                    {user.role === "ADMIN" ? (
+                      <span className="text-ink-400">Todas</span>
+                    ) : user.brandName ? (
+                      user.brandName
+                    ) : (
+                      <span className="font-medium text-amber-600">Sem loja vinculada</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <button
                       type="button"
@@ -177,9 +204,19 @@ export function AdminUsers() {
           <Input label="Nome" error={errors.name?.message} {...register("name")} />
           <Input label="E-mail" type="email" error={errors.email?.message} {...register("email")} />
           <Select label="Perfil" error={errors.role?.message} {...register("role")}>
-            <option value="VENDEDOR">Vendedor</option>
-            <option value="ADMIN">Administrador</option>
+            <option value="VENDEDOR">Vendedor — acessa apenas a própria loja</option>
+            <option value="ADMIN">Administrador — controla todas as lojas</option>
           </Select>
+          {selectedRole === "VENDEDOR" && (
+            <Select label="Loja (marca)" error={errors.brandId?.message} {...register("brandId")}>
+              <option value={0}>Selecione a loja</option>
+              {brands?.map((brand) => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+            </Select>
+          )}
           <Input
             label="Senha"
             type="password"

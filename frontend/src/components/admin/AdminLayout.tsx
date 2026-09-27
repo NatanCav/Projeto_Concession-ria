@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Car,
+  GalleryHorizontal,
   LayoutDashboard,
   ListTree,
   LogOut,
   Menu,
   MessageCircle,
   Settings,
+  Store,
   Tags,
   Users,
   X,
@@ -28,7 +30,10 @@ interface NavItem {
 const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Principal",
-    items: [{ to: "/admin", label: "Visão geral", icon: LayoutDashboard, end: true }],
+    items: [
+      { to: "/admin", label: "Visão geral", icon: LayoutDashboard, end: true },
+      { to: "/admin/lojas", label: "Lojas", icon: Store, adminOnly: true },
+    ],
   },
   {
     label: "Estoque",
@@ -41,6 +46,10 @@ const navGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Atendimento",
     items: [{ to: "/admin/leads", label: "Interesses", icon: MessageCircle }],
+  },
+  {
+    label: "Site",
+    items: [{ to: "/admin/banners", label: "Banners da home", icon: GalleryHorizontal, adminOnly: true }],
   },
   {
     label: "Sistema",
@@ -57,6 +66,8 @@ const pageTitles: { test: (path: string) => boolean; title: string }[] = [
   { test: (p) => p === "/admin/veiculos/novo", title: "Novo veículo" },
   { test: (p) => /^\/admin\/veiculos\/\d+\/editar$/.test(p), title: "Editar veículo" },
   { test: (p) => p === "/admin/leads", title: "Interesses" },
+  { test: (p) => p === "/admin/lojas", title: "Lojas" },
+  { test: (p) => p === "/admin/banners", title: "Banners da home" },
   { test: (p) => p === "/admin/marcas", title: "Marcas" },
   { test: (p) => p === "/admin/categorias", title: "Categorias" },
   { test: (p) => p === "/admin/usuarios", title: "Usuários" },
@@ -78,8 +89,9 @@ export function AdminLayout() {
     navigate("/admin/login");
   };
 
+  const isAdmin = hasRole("ADMIN");
   const visibleGroups = navGroups
-    .map((group) => ({ ...group, items: group.items.filter((item) => !item.adminOnly || hasRole("ADMIN")) }))
+    .map((group) => ({ ...group, items: group.items.filter((item) => !item.adminOnly || isAdmin) }))
     .filter((group) => group.items.length > 0);
 
   const sidebarContent = (
@@ -88,7 +100,10 @@ export function AdminLayout() {
         <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500">
           <Car className="h-5 w-5" />
         </span>
-        <span className="text-lg font-bold">Painel Admin</span>
+        <div className="min-w-0">
+          <p className="text-lg font-bold leading-tight">{isAdmin ? "Painel Admin" : "Painel da Loja"}</p>
+          {!isAdmin && user?.brandName && <p className="truncate text-xs text-ink-400">{user.brandName}</p>}
+        </div>
       </div>
       <nav className="flex flex-1 flex-col gap-5 px-3">
         {visibleGroups.map((group) => (
@@ -120,7 +135,9 @@ export function AdminLayout() {
       </nav>
       <div className="border-t border-ink-800 px-5 py-4">
         <p className="text-sm font-semibold text-white">{user?.name}</p>
-        <p className="text-xs text-ink-400">{user?.role === "ADMIN" ? "Administrador" : "Vendedor"}</p>
+        <p className="text-xs text-ink-400">
+          {isAdmin ? "Administrador" : `Vendedor${user?.brandName ? ` · ${user.brandName}` : ""}`}
+        </p>
         <button
           type="button"
           onClick={handleLogout}
@@ -168,10 +185,10 @@ export function AdminLayout() {
             </p>
           </div>
           <Link
-            to="/"
+            to={!isAdmin && user?.brandId ? `/lojas/${user.brandId}` : "/"}
             className="shrink-0 text-sm font-medium text-ink-500 hover:text-brand-500"
           >
-            Ver site público →
+            {!isAdmin && user?.brandId ? "Ver minha loja →" : "Ver site público →"}
           </Link>
         </header>
         <main id="admin-main-content" className="flex-1 p-4 md:p-8">

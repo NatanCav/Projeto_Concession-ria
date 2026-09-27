@@ -1,5 +1,8 @@
 package com.concessionaria.user;
 
+import com.concessionaria.brand.Brand;
+import com.concessionaria.brand.BrandRepository;
+import com.concessionaria.exception.BusinessRuleException;
 import com.concessionaria.exception.DuplicateResourceException;
 import com.concessionaria.exception.ResourceNotFoundException;
 import com.concessionaria.user.dto.UserCreateRequest;
@@ -29,14 +32,22 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private BrandRepository brandRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, passwordEncoder);
+        userService = new UserService(userRepository, brandRepository, passwordEncoder);
         lenient().when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Brand toyota = new Brand();
+        toyota.setId(1L);
+        toyota.setName("Toyota");
+        lenient().when(brandRepository.findById(1L)).thenReturn(Optional.of(toyota));
     }
 
     private User existingUser(Long id, String email) {
@@ -56,7 +67,7 @@ class UserServiceTest {
         when(passwordEncoder.encode("Senha123!")).thenReturn("hashed-password");
 
         UserResponse response = userService.create(
-                new UserCreateRequest("Vendedor Teste", "vendedor@concessionaria.dev", "Senha123!", UserRole.VENDEDOR));
+                new UserCreateRequest("Vendedor Teste", "vendedor@concessionaria.dev", "Senha123!", UserRole.VENDEDOR, 1L));
 
         assertThat(response.email()).isEqualTo("vendedor@concessionaria.dev");
         assertThat(response.active()).isTrue();
@@ -64,11 +75,45 @@ class UserServiceTest {
     }
 
     @Test
+    void create_linksSellerToTheChosenStore() {
+        when(userRepository.existsByEmailIgnoreCase("vendedor@concessionaria.dev")).thenReturn(false);
+        when(passwordEncoder.encode("Senha123!")).thenReturn("hashed-password");
+
+        UserResponse response = userService.create(
+                new UserCreateRequest("Vendedor Teste", "vendedor@concessionaria.dev", "Senha123!", UserRole.VENDEDOR, 1L));
+
+        assertThat(response.brandId()).isEqualTo(1L);
+        assertThat(response.brandName()).isEqualTo("Toyota");
+    }
+
+    @Test
+    void create_rejectsSellerWithoutStore() {
+        when(userRepository.existsByEmailIgnoreCase("vendedor@concessionaria.dev")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.create(
+                new UserCreateRequest("Vendedor Teste", "vendedor@concessionaria.dev", "Senha123!", UserRole.VENDEDOR, null)))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void create_neverLinksAdministratorToAStore() {
+        when(userRepository.existsByEmailIgnoreCase("admin2@concessionaria.dev")).thenReturn(false);
+        when(passwordEncoder.encode("Senha123!")).thenReturn("hashed-password");
+
+        UserResponse response = userService.create(
+                new UserCreateRequest("Admin", "admin2@concessionaria.dev", "Senha123!", UserRole.ADMIN, 1L));
+
+        assertThat(response.brandId()).isNull();
+    }
+
+    @Test
     void create_throwsDuplicateResource_whenEmailAlreadyRegistered() {
         when(userRepository.existsByEmailIgnoreCase("vendedor@concessionaria.dev")).thenReturn(true);
 
         assertThatThrownBy(() -> userService.create(
-                new UserCreateRequest("Vendedor Teste", "vendedor@concessionaria.dev", "Senha123!", UserRole.VENDEDOR)))
+                new UserCreateRequest("Vendedor Teste", "vendedor@concessionaria.dev", "Senha123!", UserRole.VENDEDOR, 1L)))
                 .isInstanceOf(DuplicateResourceException.class);
 
         verify(userRepository, never()).save(any());
@@ -81,7 +126,7 @@ class UserServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(userRepository.findByEmailIgnoreCase("vendedor@concessionaria.dev")).thenReturn(Optional.of(existing));
 
-        userService.update(1L, new UserUpdateRequest("Vendedor Editado", "vendedor@concessionaria.dev", UserRole.VENDEDOR, ""));
+        userService.update(1L, new UserUpdateRequest("Vendedor Editado", "vendedor@concessionaria.dev", UserRole.VENDEDOR, 1L, ""));
 
         assertThat(existing.getPasswordHash()).isEqualTo("old-hash");
         assertThat(existing.getName()).isEqualTo("Vendedor Editado");
@@ -95,7 +140,7 @@ class UserServiceTest {
         when(userRepository.findByEmailIgnoreCase("vendedor@concessionaria.dev")).thenReturn(Optional.of(existing));
         when(passwordEncoder.encode("NovaSenha123!")).thenReturn("new-hash");
 
-        userService.update(1L, new UserUpdateRequest("Vendedor Teste", "vendedor@concessionaria.dev", UserRole.VENDEDOR, "NovaSenha123!"));
+        userService.update(1L, new UserUpdateRequest("Vendedor Teste", "vendedor@concessionaria.dev", UserRole.VENDEDOR, 1L, "NovaSenha123!"));
 
         assertThat(existing.getPasswordHash()).isEqualTo("new-hash");
     }
@@ -108,7 +153,7 @@ class UserServiceTest {
         when(userRepository.findByEmailIgnoreCase("outro@concessionaria.dev")).thenReturn(Optional.of(other));
 
         assertThatThrownBy(() -> userService.update(1L,
-                new UserUpdateRequest("Vendedor Teste", "outro@concessionaria.dev", UserRole.VENDEDOR, null)))
+                new UserUpdateRequest("Vendedor Teste", "outro@concessionaria.dev", UserRole.VENDEDOR, 1L, null)))
                 .isInstanceOf(DuplicateResourceException.class);
     }
 
@@ -119,7 +164,7 @@ class UserServiceTest {
         when(userRepository.findByEmailIgnoreCase("vendedor@concessionaria.dev")).thenReturn(Optional.of(existing));
 
         UserResponse response = userService.update(1L,
-                new UserUpdateRequest("Vendedor Teste", "vendedor@concessionaria.dev", UserRole.VENDEDOR, null));
+                new UserUpdateRequest("Vendedor Teste", "vendedor@concessionaria.dev", UserRole.VENDEDOR, 1L, null));
 
         assertThat(response.email()).isEqualTo("vendedor@concessionaria.dev");
     }

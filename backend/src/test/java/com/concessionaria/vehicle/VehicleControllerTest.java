@@ -78,7 +78,7 @@ class VehicleControllerTest {
     private VehicleCreateRequest validRequest() {
         return new VehicleCreateRequest(
                 1L, 1L, VehicleType.CARRO, "Corolla", "XEi 2.0", 2023, 15000,
-                BigDecimal.valueOf(129900), null, FuelType.FLEX, TransmissionType.AUTOMATICO,
+                BigDecimal.valueOf(129900), null, null, null, FuelType.FLEX, TransmissionType.AUTOMATICO,
                 "Prata", null, null, null, null, null
         );
     }
@@ -89,7 +89,7 @@ class VehicleControllerTest {
                 new BrandResponse(1L, "Toyota", null, true),
                 new CategoryResponse(1L, "Sedan", true),
                 VehicleType.CARRO, "Corolla", "XEi 2.0", 2023, 15000,
-                BigDecimal.valueOf(129900), null, FuelType.FLEX, TransmissionType.AUTOMATICO,
+                BigDecimal.valueOf(129900), null, null, null, null, FuelType.FLEX, TransmissionType.AUTOMATICO,
                 "Prata", null, null, VehicleStatus.DISPONIVEL, false,
                 List.of(), null, Instant.now()
         );
@@ -119,7 +119,7 @@ class VehicleControllerTest {
     void create_returnsBadRequest_whenModelIsBlank() throws Exception {
         VehicleCreateRequest invalid = new VehicleCreateRequest(
                 1L, 1L, VehicleType.CARRO, "", "XEi 2.0", 2023, 15000,
-                BigDecimal.valueOf(129900), null, FuelType.FLEX, TransmissionType.AUTOMATICO,
+                BigDecimal.valueOf(129900), null, null, null, FuelType.FLEX, TransmissionType.AUTOMATICO,
                 "Prata", null, null, null, null, null
         );
 
@@ -134,7 +134,7 @@ class VehicleControllerTest {
     void create_returnsBadRequest_whenPriceIsNegative() throws Exception {
         VehicleCreateRequest invalid = new VehicleCreateRequest(
                 1L, 1L, VehicleType.CARRO, "Corolla", "XEi 2.0", 2023, 15000,
-                BigDecimal.valueOf(-1), null, FuelType.FLEX, TransmissionType.AUTOMATICO,
+                BigDecimal.valueOf(-1), null, null, null, FuelType.FLEX, TransmissionType.AUTOMATICO,
                 "Prata", null, null, null, null, null
         );
 

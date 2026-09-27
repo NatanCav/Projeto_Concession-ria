@@ -5,6 +5,7 @@ import com.concessionaria.brand.BrandRepository;
 import com.concessionaria.category.Category;
 import com.concessionaria.category.CategoryRepository;
 import com.concessionaria.exception.ResourceNotFoundException;
+import com.concessionaria.security.CurrentUserService;
 import com.concessionaria.storage.FileStorageService;
 import com.concessionaria.vehicle.dto.TechnicalSpecificationRequest;
 import com.concessionaria.vehicle.dto.VehicleCreateRequest;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -23,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -44,6 +47,9 @@ class VehicleServiceTest {
     @Mock
     private FileStorageService fileStorageService;
 
+    @Mock
+    private CurrentUserService currentUserService;
+
     private VehicleService vehicleService;
 
     private Brand toyota;
@@ -51,7 +57,8 @@ class VehicleServiceTest {
 
     @BeforeEach
     void setUp() {
-        vehicleService = new VehicleService(vehicleRepository, brandRepository, categoryRepository, fileStorageService);
+        vehicleService = new VehicleService(vehicleRepository, brandRepository, categoryRepository, fileStorageService,
+                currentUserService);
 
         toyota = new Brand();
         toyota.setId(1L);
@@ -61,6 +68,8 @@ class VehicleServiceTest {
         sedan.setId(1L);
         sedan.setName("Sedan");
 
+        lenient().when(currentUserService.restrictedBrandId()).thenReturn(null);
+
         // save() echoes back whatever entity it receives, as a real JPA repository would.
         lenient().when(vehicleRepository.save(any(Vehicle.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -68,7 +77,7 @@ class VehicleServiceTest {
     private VehicleCreateRequest createRequest() {
         return new VehicleCreateRequest(
                 1L, 1L, VehicleType.CARRO, "Corolla", "XEi 2.0", 2023, 15000,
-                BigDecimal.valueOf(129900), null, FuelType.FLEX, TransmissionType.AUTOMATICO,
+                BigDecimal.valueOf(129900), null, null, null, FuelType.FLEX, TransmissionType.AUTOMATICO,
                 "Prata", null, "Único dono", null, null, null
         );
     }
@@ -142,7 +151,7 @@ class VehicleServiceTest {
 
         VehicleCreateRequest request = new VehicleCreateRequest(
                 1L, 1L, VehicleType.CARRO, "Corolla", "XEi 2.0", 2023, 15000,
-                BigDecimal.valueOf(129900), null, FuelType.FLEX, TransmissionType.AUTOMATICO,
+                BigDecimal.valueOf(129900), null, null, null, FuelType.FLEX, TransmissionType.AUTOMATICO,
                 "Prata", null, "Único dono", null, null, specRequest
         );
 
@@ -164,7 +173,7 @@ class VehicleServiceTest {
 
         VehicleCreateRequest request = new VehicleCreateRequest(
                 1L, 1L, VehicleType.CARRO, "Corolla", "Altis 2.0", 2023, 15000,
-                BigDecimal.valueOf(129900), null, FuelType.FLEX, TransmissionType.AUTOMATICO,
+                BigDecimal.valueOf(129900), null, null, null, FuelType.FLEX, TransmissionType.AUTOMATICO,
                 "Prata", null, null, null, null, null
         );
 
@@ -184,7 +193,7 @@ class VehicleServiceTest {
         // Only the price changes; brand/model/version/year stay the same.
         VehicleCreateRequest request = new VehicleCreateRequest(
                 1L, 1L, VehicleType.CARRO, "Corolla", "XEi 2.0", 2023, 15000,
-                BigDecimal.valueOf(119900), null, FuelType.FLEX, TransmissionType.AUTOMATICO,
+                BigDecimal.valueOf(119900), null, null, null, FuelType.FLEX, TransmissionType.AUTOMATICO,
                 "Prata", null, null, null, null, null
         );
 
@@ -211,6 +220,56 @@ class VehicleServiceTest {
         VehicleDetailResponse response = vehicleService.updateStatus(10L, VehicleStatus.VENDIDO);
 
         assertThat(response.status()).isEqualTo(VehicleStatus.VENDIDO);
+    }
+
+    @Test
+    void updateStatus_stampsSaleDateAndAdvertisedPrice_whenMarkedAsSold() {
+        Vehicle existing = existingVehicle("toyota-corolla-xei-20-2023", "Corolla", "XEi 2.0", 2023);
+        existing.setPromotionalPrice(BigDecimal.valueOf(124900));
+        when(vehicleRepository.findById(10L)).thenReturn(Optional.of(existing));
+
+        VehicleDetailResponse response = vehicleService.updateStatus(10L, VehicleStatus.VENDIDO);
+
+        assertThat(response.soldAt()).isNotNull();
+        assertThat(response.soldPrice()).isEqualByComparingTo(BigDecimal.valueOf(124900));
+    }
+
+    @Test
+    void updateStatus_clearsSaleData_whenVehicleLeavesSoldStatus() {
+        Vehicle existing = existingVehicle("toyota-corolla-xei-20-2023", "Corolla", "XEi 2.0", 2023);
+        existing.setStatus(VehicleStatus.VENDIDO);
+        existing.setSoldPrice(BigDecimal.valueOf(120000));
+        existing.setSoldAt(java.time.Instant.now());
+        when(vehicleRepository.findById(10L)).thenReturn(Optional.of(existing));
+
+        VehicleDetailResponse response = vehicleService.updateStatus(10L, VehicleStatus.DISPONIVEL);
+
+        assertThat(response.soldAt()).isNull();
+        assertThat(response.soldPrice()).isNull();
+    }
+
+    @Test
+    void update_isRejected_whenSellerTriesToEditAnotherStoresVehicle() {
+        Vehicle existing = existingVehicle("toyota-corolla-xei-20-2023", "Corolla", "XEi 2.0", 2023);
+        when(vehicleRepository.findById(10L)).thenReturn(Optional.of(existing));
+        doThrow(new AccessDeniedException("outra loja")).when(currentUserService).assertCanManageBrand(1L);
+
+        assertThatThrownBy(() -> vehicleService.update(10L, createRequest()))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(vehicleRepository, never()).save(any());
+    }
+
+    @Test
+    void getPublicDetailBySlug_hidesInternalFinancialData() {
+        Vehicle available = existingVehicle("toyota-corolla-xei-20-2023", "Corolla", "XEi 2.0", 2023);
+        available.setStatus(VehicleStatus.DISPONIVEL);
+        available.setCostPrice(BigDecimal.valueOf(100000));
+        when(vehicleRepository.findBySlug("toyota-corolla-xei-20-2023")).thenReturn(Optional.of(available));
+
+        VehicleDetailResponse response = vehicleService.getPublicDetailBySlug("toyota-corolla-xei-20-2023");
+
+        assertThat(response.costPrice()).isNull();
     }
 
     @Test

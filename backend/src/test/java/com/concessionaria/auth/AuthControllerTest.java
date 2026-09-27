@@ -64,7 +64,7 @@ class AuthControllerTest {
     }
 
     private UserResponse sampleUser() {
-        return new UserResponse(1L, "Administrador", "admin@concessionaria.dev", UserRole.ADMIN, true, Instant.now());
+        return new UserResponse(1L, "Administrador", "admin@concessionaria.dev", UserRole.ADMIN, true, null, null, Instant.now());
     }
 
     @Test

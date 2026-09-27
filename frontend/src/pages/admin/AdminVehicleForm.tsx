@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useAdminVehicle, useCreateVehicle, useUpdateVehicle } from "@/hooks/useAdminVehicles";
+import { useAuth } from "@/context/AuthContext";
 import { useBrands } from "@/hooks/useBrands";
 import { useCategories } from "@/hooks/useCategories";
 import { Input } from "@/components/ui/Input";
@@ -50,6 +51,8 @@ const vehicleSchema = z.object({
   mileage: z.coerce.number().min(0, "Quilometragem não pode ser negativa"),
   price: z.coerce.number().positive("Preço deve ser maior que zero"),
   promotionalPrice: optionalNumber,
+  costPrice: optionalNumber,
+  soldPrice: optionalNumber,
   fuel: z.enum(["FLEX", "GASOLINA", "ETANOL", "DIESEL", "HIBRIDO", "ELETRICO", "GNV"]),
   transmission: z.enum(["MANUAL", "AUTOMATICO", "AUTOMATIZADO", "CVT", "SEMI_AUTOMATICO"]),
   color: z.string().optional(),
@@ -72,6 +75,8 @@ const defaultValues: VehicleFormSchema = {
   mileage: 0,
   price: 0,
   promotionalPrice: undefined,
+  costPrice: undefined,
+  soldPrice: undefined,
   fuel: "FLEX",
   transmission: "MANUAL",
   color: "",
@@ -90,7 +95,10 @@ export function AdminVehicleForm() {
 
   useDocumentMeta({ title: isEditing ? "Editar veículo — Painel administrativo" : "Novo veículo — Painel administrativo" });
 
-  const { data: brands } = useBrands(true);
+  const { user, hasRole } = useAuth();
+  const isAdmin = hasRole("ADMIN");
+  const { data: allBrands } = useBrands(true);
+  const brands = isAdmin ? allBrands : allBrands?.filter((brand) => brand.id === user?.brandId);
   const { data: categories } = useCategories(true);
   const { data: vehicle, isLoading: isLoadingVehicle } = useAdminVehicle(vehicleId);
   const createVehicle = useCreateVehicle();
@@ -100,8 +108,13 @@ export function AdminVehicleForm() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<VehicleFormSchema>({ resolver: zodResolver(vehicleSchema), defaultValues });
+  } = useForm<VehicleFormSchema>({
+    resolver: zodResolver(vehicleSchema),
+    defaultValues: { ...defaultValues, brandId: isAdmin ? 0 : (user?.brandId ?? 0) },
+  });
+  const isSold = watch("status") === "VENDIDO";
 
   useEffect(() => {
     if (vehicle) {
@@ -115,6 +128,8 @@ export function AdminVehicleForm() {
         mileage: vehicle.mileage,
         price: vehicle.price,
         promotionalPrice: vehicle.promotionalPrice ?? undefined,
+        costPrice: vehicle.costPrice ?? undefined,
+        soldPrice: vehicle.soldPrice ?? undefined,
         fuel: vehicle.fuel,
         transmission: vehicle.transmission,
         color: vehicle.color ?? "",
@@ -178,8 +193,8 @@ export function AdminVehicleForm() {
         <section className="rounded-xl border border-ink-100 bg-white p-6">
           <h2 className="mb-4 text-base font-bold text-ink-900">Informações principais</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Select label="Marca" error={errors.brandId?.message} {...register("brandId")}>
-              <option value={0}>Selecione</option>
+            <Select label={isAdmin ? "Marca (loja)" : "Loja"} error={errors.brandId?.message} {...register("brandId")}>
+              {isAdmin && <option value={0}>Selecione</option>}
               {brands?.map((brand) => (
                 <option key={brand.id} value={brand.id}>
                   {brand.name}
@@ -241,10 +256,39 @@ export function AdminVehicleForm() {
           <div className="mt-4">
             <Textarea label="Descrição" rows={4} {...register("description")} />
           </div>
-          <label className="mt-4 flex items-center gap-2 text-sm font-medium text-ink-700">
-            <input type="checkbox" className="h-4 w-4 rounded border-ink-300" {...register("featured")} />
-            Destacar este veículo na home
-          </label>
+          {isAdmin && (
+            <label className="mt-4 flex items-center gap-2 text-sm font-medium text-ink-700">
+              <input type="checkbox" className="h-4 w-4 rounded border-ink-300" {...register("featured")} />
+              Destacar este veículo na home
+            </label>
+          )}
+        </section>
+
+        <section className="rounded-xl border border-ink-100 bg-white p-6">
+          <h2 className="text-base font-bold text-ink-900">Financeiro</h2>
+          <p className="mb-4 mt-1 text-sm text-ink-500">
+            Uso interno: nunca aparece no site. Alimenta o lucro exibido na visão geral da loja.
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Preço de custo"
+              type="number"
+              step="0.01"
+              hint="Quanto a loja pagou pelo veículo"
+              error={errors.costPrice?.message}
+              {...register("costPrice")}
+            />
+            {isSold && (
+              <Input
+                label="Valor de venda"
+                type="number"
+                step="0.01"
+                hint="Em branco usa o preço anunciado"
+                error={errors.soldPrice?.message}
+                {...register("soldPrice")}
+              />
+            )}
+          </div>
         </section>
 
         <section className="rounded-xl border border-ink-100 bg-white p-6">

@@ -11,10 +11,14 @@ public record UserResponse(
         String email,
         UserRole role,
         boolean active,
+        Long brandId,
+        String brandName,
         Instant createdAt
 ) {
     public static UserResponse from(User user) {
-        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole(),
-                user.isActive(), user.getCreatedAt());
+        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.isActive(),
+                user.getBrand() != null ? user.getBrand().getId() : null,
+                user.getBrand() != null ? user.getBrand().getName() : null,
+                user.getCreatedAt());
     }
 }

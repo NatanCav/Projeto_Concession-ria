@@ -8,6 +8,9 @@ const Catalog = lazy(() => import("@/pages/Catalog").then((m) => ({ default: m.C
 const VehicleDetailPage = lazy(() =>
   import("@/pages/VehicleDetailPage").then((m) => ({ default: m.VehicleDetailPage })),
 );
+const BrandStorePage = lazy(() =>
+  import("@/pages/BrandStorePage").then((m) => ({ default: m.BrandStorePage })),
+);
 const NotFound = lazy(() => import("@/pages/NotFound").then((m) => ({ default: m.NotFound })));
 
 const AdminLayout = lazy(() => import("@/components/admin/AdminLayout").then((m) => ({ default: m.AdminLayout })));
@@ -27,6 +30,8 @@ const AdminCategories = lazy(() =>
   import("@/pages/admin/AdminCategories").then((m) => ({ default: m.AdminCategories })),
 );
 const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers").then((m) => ({ default: m.AdminUsers })));
+const AdminStores = lazy(() => import("@/pages/admin/AdminStores").then((m) => ({ default: m.AdminStores })));
+const AdminBanners = lazy(() => import("@/pages/admin/AdminBanners").then((m) => ({ default: m.AdminBanners })));
 const AdminSettings = lazy(() =>
   import("@/pages/admin/AdminSettings").then((m) => ({ default: m.AdminSettings })),
 );
@@ -50,6 +55,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/veiculos" element={withSuspense(<Catalog />)} />
         <Route path="/veiculos/:slug" element={withSuspense(<VehicleDetailPage />)} />
+        <Route path="/lojas/:brandId" element={withSuspense(<BrandStorePage />)} />
       </Route>
 
       <Route path="/admin/login" element={withSuspense(<AdminLogin />)} />
@@ -63,6 +69,14 @@ export default function App() {
         <Route path="veiculos/novo" element={withSuspense(<AdminVehicleForm />)} />
         <Route path="veiculos/:id/editar" element={withSuspense(<AdminVehicleForm />)} />
         <Route path="leads" element={withSuspense(<AdminLeads />)} />
+        <Route
+          path="lojas"
+          element={<ProtectedRoute roles={["ADMIN"]}>{withSuspense(<AdminStores />)}</ProtectedRoute>}
+        />
+        <Route
+          path="banners"
+          element={<ProtectedRoute roles={["ADMIN"]}>{withSuspense(<AdminBanners />)}</ProtectedRoute>}
+        />
         <Route
           path="marcas"
           element={<ProtectedRoute roles={["ADMIN"]}>{withSuspense(<AdminBrands />)}</ProtectedRoute>}

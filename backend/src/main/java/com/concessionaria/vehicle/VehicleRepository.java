@@ -27,6 +27,11 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long>, JpaSpec
 
     long countByFeaturedTrue();
 
+    List<Vehicle> findByBrandId(Long brandId);
+
+    @Query("select v.brand.id from Vehicle v where v.id = :id")
+    Optional<Long> findBrandIdById(@Param("id") Long id);
+
     @Query("select v.slug from Vehicle v where v.status in :statuses order by v.createdAt desc")
     List<String> findSlugsByStatusIn(@Param("statuses") List<VehicleStatus> statuses);
 

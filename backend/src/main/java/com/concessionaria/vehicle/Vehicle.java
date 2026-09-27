@@ -20,6 +20,7 @@ import lombok.Setter;
 import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,6 +63,15 @@ public class Vehicle extends BaseEntity {
     @Column(name = "promotional_price", precision = 12, scale = 2)
     private BigDecimal promotionalPrice;
 
+    @Column(name = "cost_price", precision = 12, scale = 2)
+    private BigDecimal costPrice;
+
+    @Column(name = "sold_price", precision = 12, scale = 2)
+    private BigDecimal soldPrice;
+
+    @Column(name = "sold_at")
+    private Instant soldAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private FuelType fuel;
@@ -93,4 +103,8 @@ public class Vehicle extends BaseEntity {
 
     @OneToOne(mappedBy = "vehicle", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private TechnicalSpecification technicalSpecification;
+
+    public BigDecimal getEffectivePrice() {
+        return promotionalPrice != null ? promotionalPrice : price;
+    }
 }

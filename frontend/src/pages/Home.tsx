@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  ArrowRight,
   Bike,
   Car,
   FileCheck2,
@@ -15,6 +16,7 @@ import { useFeaturedVehicles, useRecentVehicles } from "@/hooks/useVehicles";
 import { useCategories } from "@/hooks/useCategories";
 import { useBrands } from "@/hooks/useBrands";
 import { useSettings } from "@/hooks/useSettings";
+import { useBanners } from "@/hooks/useBanners";
 import { VehicleCard } from "@/components/vehicle/VehicleCard";
 import { CatalogGridSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -33,6 +35,26 @@ const vehicleTypeShortcuts: { type: VehicleType; label: string; icon: typeof Car
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 26 }, (_, i) => CURRENT_YEAR - i);
 const MAX_PRICE_OPTIONS = [50000, 100000, 150000, 200000, 300000];
+const BANNER_INTERVAL_MS = 6000;
+
+function BannerCta({ href }: { href: string }) {
+  const className =
+    "inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-brand-600";
+  const content = (
+    <>
+      Ver ofertas <ArrowRight className="h-4 w-4" />
+    </>
+  );
+  return href.startsWith("/") ? (
+    <Link to={href} className={className}>
+      {content}
+    </Link>
+  ) : (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+      {content}
+    </a>
+  );
+}
 
 export function Home() {
   useDocumentMeta({
@@ -45,7 +67,21 @@ export function Home() {
   const { data: recent, isLoading: loadingRecent } = useRecentVehicles(8);
   const { data: categories } = useCategories();
   const { data: brands } = useBrands();
+  const { data: banners } = useBanners();
   const navigate = useNavigate();
+
+  const slides = banners ?? [];
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (slides.length < 2 || isPaused) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => setSlideIndex((index) => (index + 1) % slides.length), BANNER_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [slides.length, isPaused]);
+
+  const currentSlide = slides.length > 0 ? slides[slideIndex % slides.length] : null;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [searchBrand, setSearchBrand] = useState("");
@@ -94,8 +130,31 @@ export function Home() {
 
   return (
     <div>
-      <section className="relative overflow-hidden bg-ink-950 text-white">
-        {heroImage && (
+      <section
+        className="relative overflow-hidden bg-ink-950 text-white"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onFocus={() => setIsPaused(true)}
+        onBlur={() => setIsPaused(false)}
+      >
+        {slides.length > 0 ? (
+          <>
+            {slides.map((slide, index) => (
+              <img
+                key={slide.id}
+                src={slide.imageUrl}
+                alt=""
+                aria-hidden
+                loading={index === 0 ? "eager" : "lazy"}
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+                  index === slideIndex % slides.length ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            ))}
+            <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/75 to-ink-950/20" />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-transparent" />
+          </>
+        ) : heroImage && (
           <>
             <img
               src={heroImage}
@@ -114,11 +173,23 @@ export function Home() {
               Seu próximo carro está aqui
             </p>
             <h1 className="mt-3 text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-              Encontre seu <span className="text-brand-500">próximo veículo</span>
+              {currentSlide?.title ? (
+                currentSlide.title
+              ) : (
+                <>
+                  Encontre seu <span className="text-brand-500">próximo veículo</span>
+                </>
+              )}
             </h1>
             <p className="mt-4 max-w-lg text-ink-300">
-              Confira nosso estoque de veículos revisados e encontre a melhor oportunidade para você.
+              {currentSlide?.subtitle ??
+                "Confira nosso estoque de veículos revisados e encontre a melhor oportunidade para você."}
             </p>
+            {currentSlide?.linkUrl && (
+              <div className="mt-6">
+                <BannerCta href={currentSlide.linkUrl} />
+              </div>
+            )}
 
             <div className="mt-6 flex flex-wrap gap-3">
               {vehicleTypeShortcuts.map(({ type, label, icon: Icon }) => (
@@ -132,6 +203,23 @@ export function Home() {
               ))}
             </div>
           </div>
+
+          {slides.length > 1 && (
+            <div className="flex gap-2">
+              {slides.map((slide, index) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  onClick={() => setSlideIndex(index)}
+                  aria-label={`Mostrar banner ${index + 1} de ${slides.length}`}
+                  aria-current={index === slideIndex % slides.length}
+                  className={`h-1.5 rounded-full transition-all ${
+                    index === slideIndex % slides.length ? "w-8 bg-white" : "w-4 bg-white/40 hover:bg-white/70"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

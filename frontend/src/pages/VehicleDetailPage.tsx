@@ -10,6 +10,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/Badge";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { useTrackView } from "@/hooks/useTrackView";
 import { formatCurrency, formatMileage } from "@/utils/format";
 import { fuelLabels, statusBadgeStyles, statusLabels, transmissionLabels, vehicleTypeLabels } from "@/utils/labels";
 
@@ -17,6 +18,7 @@ export function VehicleDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: vehicle, isLoading, isError, refetch } = useVehicleBySlug(slug);
   const { data: settings } = useSettings();
+  useTrackView(vehicle ? { vehicleId: vehicle.id } : undefined);
 
   useDocumentMeta({
     title: vehicle
@@ -74,9 +76,11 @@ export function VehicleDetailPage() {
           Catálogo
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-ink-700">
-          {vehicle.brand.name} {vehicle.model}
-        </span>
+        <Link to={`/lojas/${vehicle.brand.id}`} className="hover:text-brand-500">
+          {vehicle.brand.name}
+        </Link>
+        <span className="mx-2">/</span>
+        <span className="text-ink-700">{vehicle.model}</span>
       </nav>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
@@ -94,7 +98,12 @@ export function VehicleDetailPage() {
             {vehicle.featured && <Badge className="bg-brand-500 text-white">Destaque</Badge>}
           </div>
 
-          <p className="mt-3 text-sm font-semibold uppercase tracking-wide text-brand-500">{vehicle.brand.name}</p>
+          <Link
+            to={`/lojas/${vehicle.brand.id}`}
+            className="mt-3 inline-block text-sm font-semibold uppercase tracking-wide text-brand-500 hover:underline"
+          >
+            {vehicle.brand.name}
+          </Link>
           <h1 className="text-2xl font-extrabold text-ink-900 sm:text-3xl">{vehicle.model}</h1>
           <p className="text-ink-500">{vehicle.version}</p>
 

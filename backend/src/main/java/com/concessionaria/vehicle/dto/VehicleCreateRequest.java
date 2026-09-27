@@ -50,6 +50,12 @@ public record VehicleCreateRequest(
         @PositiveOrZero(message = "Preço promocional não pode ser negativo")
         BigDecimal promotionalPrice,
 
+        @PositiveOrZero(message = "Preço de custo não pode ser negativo")
+        BigDecimal costPrice,
+
+        @PositiveOrZero(message = "Valor de venda não pode ser negativo")
+        BigDecimal soldPrice,
+
         @NotNull(message = "Combustível é obrigatório")
         FuelType fuel,
 

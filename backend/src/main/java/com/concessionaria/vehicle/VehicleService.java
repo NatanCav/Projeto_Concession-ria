@@ -7,6 +7,7 @@ import com.concessionaria.category.CategoryRepository;
 import com.concessionaria.common.PageResponse;
 import com.concessionaria.common.SlugUtils;
 import com.concessionaria.exception.ResourceNotFoundException;
+import com.concessionaria.security.CurrentUserService;
 import com.concessionaria.storage.FileStorageService;
 import com.concessionaria.vehicle.dto.TechnicalSpecificationRequest;
 import com.concessionaria.vehicle.dto.VehicleCreateRequest;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -34,13 +36,16 @@ public class VehicleService {
     private final BrandRepository brandRepository;
     private final CategoryRepository categoryRepository;
     private final FileStorageService fileStorageService;
+    private final CurrentUserService currentUserService;
 
     public VehicleService(VehicleRepository vehicleRepository, BrandRepository brandRepository,
-                           CategoryRepository categoryRepository, FileStorageService fileStorageService) {
+                           CategoryRepository categoryRepository, FileStorageService fileStorageService,
+                           CurrentUserService currentUserService) {
         this.vehicleRepository = vehicleRepository;
         this.brandRepository = brandRepository;
         this.categoryRepository = categoryRepository;
         this.fileStorageService = fileStorageService;
+        this.currentUserService = currentUserService;
     }
 
     public PageResponse<VehicleSummaryResponse> searchPublic(VehicleFilter filter, Pageable pageable) {
@@ -50,7 +55,9 @@ public class VehicleService {
     }
 
     public PageResponse<VehicleSummaryResponse> searchAdmin(VehicleFilter filter, Pageable pageable) {
-        Page<Vehicle> page = vehicleRepository.findAll(VehicleSpecifications.withFilter(filter), pageable);
+        Long storeId = currentUserService.restrictedBrandId();
+        VehicleFilter scoped = storeId == null ? filter : withBrand(filter, storeId);
+        Page<Vehicle> page = vehicleRepository.findAll(VehicleSpecifications.withFilter(scoped), pageable);
         return PageResponse.from(page, VehicleSummaryResponse::from);
     }
 
@@ -58,11 +65,11 @@ public class VehicleService {
         Vehicle vehicle = vehicleRepository.findBySlug(slug)
                 .filter(v -> VehicleStatus.PUBLICLY_VISIBLE.contains(v.getStatus()))
                 .orElseThrow(() -> ResourceNotFoundException.of("Veículo", slug));
-        return VehicleDetailResponse.from(vehicle);
+        return VehicleDetailResponse.publicFrom(vehicle);
     }
 
     public VehicleDetailResponse getAdminDetailById(Long id) {
-        return VehicleDetailResponse.from(getVehicleOrThrow(id));
+        return VehicleDetailResponse.from(getManageableVehicle(id));
     }
 
     public List<VehicleSummaryResponse> featured(int limit) {
@@ -89,6 +96,7 @@ public class VehicleService {
 
     @Transactional
     public VehicleDetailResponse create(VehicleCreateRequest request) {
+        currentUserService.assertCanManageBrand(request.brandId());
         Brand brand = getBrandOrThrow(request.brandId());
         Category category = getCategoryOrThrow(request.categoryId());
 
@@ -96,6 +104,9 @@ public class VehicleService {
         vehicle.setBrand(brand);
         vehicle.setCategory(category);
         applyRequest(vehicle, request);
+        if (currentUserService.restrictedBrandId() != null) {
+            vehicle.setFeatured(false);
+        }
         vehicle.setSlug(generateUniqueSlug(brand, request.model(), request.version(), request.year(), null));
 
         if (request.specifications() != null) {
@@ -107,7 +118,8 @@ public class VehicleService {
 
     @Transactional
     public VehicleDetailResponse update(Long id, VehicleCreateRequest request) {
-        Vehicle vehicle = getVehicleOrThrow(id);
+        Vehicle vehicle = getManageableVehicle(id);
+        currentUserService.assertCanManageBrand(request.brandId());
         Brand brand = getBrandOrThrow(request.brandId());
         Category category = getCategoryOrThrow(request.categoryId());
 
@@ -116,9 +128,13 @@ public class VehicleService {
                 || !vehicle.getVersion().equalsIgnoreCase(request.version())
                 || !vehicle.getYear().equals(request.year());
 
+        boolean wasFeatured = vehicle.isFeatured();
         vehicle.setBrand(brand);
         vehicle.setCategory(category);
         applyRequest(vehicle, request);
+        if (currentUserService.restrictedBrandId() != null) {
+            vehicle.setFeatured(wasFeatured);
+        }
 
         if (slugRelevantChanged) {
             vehicle.setSlug(generateUniqueSlug(brand, request.model(), request.version(), request.year(), id));
@@ -133,8 +149,8 @@ public class VehicleService {
 
     @Transactional
     public VehicleDetailResponse updateStatus(Long id, VehicleStatus status) {
-        Vehicle vehicle = getVehicleOrThrow(id);
-        vehicle.setStatus(status);
+        Vehicle vehicle = getManageableVehicle(id);
+        applyStatus(vehicle, status, null);
         return VehicleDetailResponse.from(vehicleRepository.save(vehicle));
     }
 
@@ -147,7 +163,7 @@ public class VehicleService {
 
     @Transactional
     public VehicleDetailResponse upsertSpecifications(Long id, TechnicalSpecificationRequest request) {
-        Vehicle vehicle = getVehicleOrThrow(id);
+        Vehicle vehicle = getManageableVehicle(id);
         applySpecification(vehicle, request);
         return VehicleDetailResponse.from(vehicleRepository.save(vehicle));
     }
@@ -157,6 +173,12 @@ public class VehicleService {
         Vehicle vehicle = getVehicleOrThrow(id);
         vehicle.getImages().forEach(image -> fileStorageService.delete(image.getStoragePath()));
         vehicleRepository.delete(vehicle);
+    }
+
+    private VehicleFilter withBrand(VehicleFilter filter, Long brandId) {
+        return new VehicleFilter(brandId, filter.categoryId(), filter.vehicleType(), filter.minYear(),
+                filter.maxYear(), filter.minPrice(), filter.maxPrice(), filter.maxMileage(), filter.fuel(),
+                filter.transmission(), filter.q(), filter.statuses());
     }
 
     private VehicleFilter withStatuses(VehicleFilter filter, java.util.Set<VehicleStatus> statuses) {
@@ -173,13 +195,35 @@ public class VehicleService {
         vehicle.setMileage(request.mileage());
         vehicle.setPrice(request.price());
         vehicle.setPromotionalPrice(request.promotionalPrice());
+        vehicle.setCostPrice(request.costPrice());
         vehicle.setFuel(request.fuel());
         vehicle.setTransmission(request.transmission());
         vehicle.setColor(request.color());
         vehicle.setLicensePlateLastDigits(request.licensePlateLastDigits());
         vehicle.setDescription(request.description());
-        vehicle.setStatus(request.status() != null ? request.status() : VehicleStatus.DISPONIVEL);
+        applyStatus(vehicle, request.status() != null ? request.status() : VehicleStatus.DISPONIVEL, request.soldPrice());
         vehicle.setFeatured(request.featured() != null && request.featured());
+    }
+
+    /**
+     * Keeps sale data consistent with the status: entering VENDIDO stamps the sale date and
+     * price (defaulting to the advertised price); leaving VENDIDO clears both.
+     */
+    private void applyStatus(Vehicle vehicle, VehicleStatus status, BigDecimal requestedSoldPrice) {
+        vehicle.setStatus(status);
+        if (status != VehicleStatus.VENDIDO) {
+            vehicle.setSoldAt(null);
+            vehicle.setSoldPrice(null);
+            return;
+        }
+        if (vehicle.getSoldAt() == null) {
+            vehicle.setSoldAt(Instant.now());
+        }
+        if (requestedSoldPrice != null) {
+            vehicle.setSoldPrice(requestedSoldPrice);
+        } else if (vehicle.getSoldPrice() == null) {
+            vehicle.setSoldPrice(vehicle.getEffectivePrice());
+        }
     }
 
     private TechnicalSpecification buildSpecification(Vehicle vehicle, TechnicalSpecificationRequest request) {
@@ -229,6 +273,12 @@ public class VehicleService {
         return excludeId == null
                 ? vehicleRepository.existsBySlug(candidate)
                 : vehicleRepository.existsBySlugAndIdNot(candidate, excludeId);
+    }
+
+    private Vehicle getManageableVehicle(Long id) {
+        Vehicle vehicle = getVehicleOrThrow(id);
+        currentUserService.assertCanManageBrand(vehicle.getBrand().getId());
+        return vehicle;
     }
 
     Vehicle getVehicleOrThrow(Long id) {

@@ -2,6 +2,7 @@ package com.concessionaria.vehicle;
 
 import com.concessionaria.exception.BusinessRuleException;
 import com.concessionaria.exception.ResourceNotFoundException;
+import com.concessionaria.security.CurrentUserService;
 import com.concessionaria.storage.FileStorageService;
 import com.concessionaria.storage.StoredFile;
 import com.concessionaria.vehicle.dto.VehicleImageResponse;
@@ -18,10 +19,13 @@ public class VehicleImageService {
 
     private final VehicleRepository vehicleRepository;
     private final FileStorageService fileStorageService;
+    private final CurrentUserService currentUserService;
 
-    public VehicleImageService(VehicleRepository vehicleRepository, FileStorageService fileStorageService) {
+    public VehicleImageService(VehicleRepository vehicleRepository, FileStorageService fileStorageService,
+                                CurrentUserService currentUserService) {
         this.vehicleRepository = vehicleRepository;
         this.fileStorageService = fileStorageService;
+        this.currentUserService = currentUserService;
     }
 
     public List<VehicleImageResponse> addImages(Long vehicleId, List<MultipartFile> files) {
@@ -110,7 +114,9 @@ public class VehicleImageService {
     }
 
     private Vehicle getVehicleOrThrow(Long id) {
-        return vehicleRepository.findById(id)
+        Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.of("Veículo", id));
+        currentUserService.assertCanManageBrand(vehicle.getBrand().getId());
+        return vehicle;
     }
 }

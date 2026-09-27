@@ -25,6 +25,9 @@ public record VehicleDetailResponse(
         Integer mileage,
         BigDecimal price,
         BigDecimal promotionalPrice,
+        BigDecimal costPrice,
+        BigDecimal soldPrice,
+        Instant soldAt,
         FuelType fuel,
         TransmissionType transmission,
         String color,
@@ -37,7 +40,16 @@ public record VehicleDetailResponse(
         Instant createdAt
 ) {
 
+    /** Same as {@link #from} but without internal financial data (cost, sale price). */
+    public static VehicleDetailResponse publicFrom(Vehicle vehicle) {
+        return build(vehicle, false);
+    }
+
     public static VehicleDetailResponse from(Vehicle vehicle) {
+        return build(vehicle, true);
+    }
+
+    private static VehicleDetailResponse build(Vehicle vehicle, boolean includeFinancials) {
         List<VehicleImageResponse> images = vehicle.getImages().stream()
                 .sorted(Comparator.comparing(img -> img.getDisplayOrder()))
                 .map(VehicleImageResponse::from)
@@ -55,6 +67,9 @@ public record VehicleDetailResponse(
                 vehicle.getMileage(),
                 vehicle.getPrice(),
                 vehicle.getPromotionalPrice(),
+                includeFinancials ? vehicle.getCostPrice() : null,
+                includeFinancials ? vehicle.getSoldPrice() : null,
+                includeFinancials ? vehicle.getSoldAt() : null,
                 vehicle.getFuel(),
                 vehicle.getTransmission(),
                 vehicle.getColor(),

@@ -4,6 +4,7 @@ import com.concessionaria.common.PageResponse;
 import com.concessionaria.exception.ResourceNotFoundException;
 import com.concessionaria.lead.dto.LeadRequest;
 import com.concessionaria.lead.dto.LeadResponse;
+import com.concessionaria.security.CurrentUserService;
 import com.concessionaria.vehicle.Vehicle;
 import com.concessionaria.vehicle.VehicleRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,11 +38,15 @@ class LeadServiceTest {
     @Mock
     private VehicleRepository vehicleRepository;
 
+    @Mock
+    private CurrentUserService currentUserService;
+
     private LeadService leadService;
 
     @BeforeEach
     void setUp() {
-        leadService = new LeadService(contactLeadRepository, vehicleRepository);
+        leadService = new LeadService(contactLeadRepository, vehicleRepository, currentUserService);
+        lenient().when(currentUserService.restrictedBrandId()).thenReturn(null);
     }
 
     @Test
@@ -103,6 +111,17 @@ class LeadServiceTest {
 
         assertThat(result.content().get(0).vehicleId()).isNull();
         assertThat(result.content().get(0).vehicleLabel()).isEqualTo("Honda Civic EXL 2020");
+    }
+
+    @Test
+    void findAllAdmin_onlyReturnsLeadsOfTheSellersStore() {
+        when(currentUserService.restrictedBrandId()).thenReturn(3L);
+        when(contactLeadRepository.findByVehicleBrandIdOrderByCreatedAtDesc(eq(3L), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        leadService.findAllAdmin(PageRequest.of(0, 20));
+
+        verify(contactLeadRepository, never()).findAllByOrderByCreatedAtDesc(any());
     }
 
     private Vehicle vehicleWithId(Long id, String model, String version, Integer year) {

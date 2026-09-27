@@ -98,17 +98,19 @@ export function AdminVehicleList() {
             </option>
           ))}
         </Select>
-        <Select
-          value={filters.brandId ?? ""}
-          onChange={(e) => patchFilters({ brandId: e.target.value ? Number(e.target.value) : undefined })}
-        >
-          <option value="">Todas as marcas</option>
-          {brands?.map((brand) => (
-            <option key={brand.id} value={brand.id}>
-              {brand.name}
-            </option>
-          ))}
-        </Select>
+        {isAdmin && (
+          <Select
+            value={filters.brandId ?? ""}
+            onChange={(e) => patchFilters({ brandId: e.target.value ? Number(e.target.value) : undefined })}
+          >
+            <option value="">Todas as lojas</option>
+            {brands?.map((brand) => (
+              <option key={brand.id} value={brand.id}>
+                {brand.name}
+              </option>
+            ))}
+          </Select>
+        )}
         <Select
           value={filters.categoryId ?? ""}
           onChange={(e) => patchFilters({ categoryId: e.target.value ? Number(e.target.value) : undefined })}

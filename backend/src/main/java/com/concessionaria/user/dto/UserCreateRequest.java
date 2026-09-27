@@ -22,6 +22,8 @@ public record UserCreateRequest(
         String password,
 
         @NotNull(message = "Perfil é obrigatório")
-        UserRole role
+        UserRole role,
+
+        Long brandId
 ) {
 }

@@ -1,9 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { dashboardService } from "@/services/dashboardService";
 
-export function useDashboardSummary() {
+export function useDashboardSummary(brandId?: number) {
   return useQuery({
-    queryKey: ["admin", "dashboard", "summary"],
-    queryFn: () => dashboardService.getSummary(),
+    queryKey: ["admin", "dashboard", "summary", brandId ?? "all"],
+    queryFn: () => dashboardService.getSummary(brandId),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useStoreSummaries() {
+  return useQuery({
+    queryKey: ["admin", "dashboard", "stores"],
+    queryFn: () => dashboardService.getStores(),
   });
 }
